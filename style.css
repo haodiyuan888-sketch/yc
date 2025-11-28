@@ -1,0 +1,259 @@
+/* style.css */
+
+/* --- 保持不变的通用和响应式样式 --- */
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: 'Arial', sans-serif;
+    color: white;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    height: 100%;
+}
+
+.page-container {
+    width: 100vw;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    position: relative;
+
+    /* 背景动画 */
+    background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
+    padding: 2vh 2vw;
+    box-sizing: border-box;
+}
+
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* 响应式字体和通用组件 */
+h1 {
+    font-size: 8vh;
+    margin-bottom: 0.2em;
+    text-shadow: 3px 3px 8px rgba(0, 0, 0, 0.6);
+    letter-spacing: 2px;
+}
+
+p {
+    font-size: 3vh;
+    max-width: 70vw;
+    margin-bottom: 2vh;
+    line-height: 1.8;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* 媒体查询：适配手机和小屏幕 */
+@media (max-width: 768px) {
+    h1 { font-size: 6vh; }
+    p { font-size: 2.5vh; max-width: 90vw; }
+}
+
+
+/* --- 2. 抽奖转盘样式 (保持不变) --- */
+#wheel-container {
+    width: 60vw;
+    height: 60vw;
+    max-width: 450px;
+    max-height: 450px;
+    position: relative;
+    margin: 4vh auto;
+    border-radius: 50%;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+}
+
+#wheel {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    /* 保持彩色渐变 */
+    background: conic-gradient(
+            #a61c5c 0% 6.25%, #ff007f 6.25% 12.5%, #ffc300 12.5% 18.75%, #6fd243 18.75% 25%,
+            #ff3d3d 25% 31.25%, #3399ff 31.25% 37.5%, #e93f6f 37.5% 43.75%, #a61c5c 43.75% 50%,
+            #800080 50% 56.25%, #ff007f 56.25% 62.5%, #ff9933 62.5% 68.75%, #c0392b 68.75% 75%,
+            #6fd243 75% 81.25%, #ffc300 81.25% 87.5%, #ff3d3d 87.5% 93.75%, #3399ff 93.75% 100%
+    );
+    box-sizing: border-box;
+    transition: transform 5s cubic-bezier(0.25, 0.1, 0.25, 1);
+    position: relative;
+    overflow: hidden;
+    border: 3px solid white;
+}
+@media (max-width: 768px) {
+    #wheel-container {
+        width: 85vw;
+        height: 85vw;
+        margin: 3vh auto;
+    }
+}
+.wheel-segment { display: none; }
+
+/* 转盘中间的开始按钮 */
+#spin-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 50;
+    width: 33%;
+    height: 33%;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #ff9933, #ff6600);
+    color: white;
+    font-size: 4vh;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.8);
+    transition: all 0.2s;
+}
+#spin-btn:hover { transform: translate(-50%, -50%) scale(1.05); }
+
+/* 抽奖指针 */
+#wheel-pointer {
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 2vh solid transparent;
+    border-right: 2vh solid transparent;
+    border-top: 4vh solid #cc0000;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.8));
+    z-index: 10;
+}
+
+/* 恢复转盘按钮 */
+#reset-btn {
+    margin-top: 2vh;
+    background-color: #34495e;
+    color: white;
+    border-radius: 50px;
+    box-shadow: 0 0.5vh 2vw rgba(52, 73, 94, 0.7);
+}
+
+/* --- 3. 新增：定向抽奖按钮组样式 --- */
+
+.directional-btns {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 2vh; /* 与转盘间隔 */
+    gap: 1.5vw; /* 按钮间距 */
+    flex-wrap: wrap; /* 手机端换行 */
+}
+
+/* 统一按钮样式 */
+.directional-btns .btn {
+    padding: 1.5vh 3vw;
+    font-size: 2.5vh;
+    font-weight: bold;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 150px; /* 最小宽度，防止手机端挤压 */
+}
+
+/* 不同按钮配色 */
+#btn-breakfast {
+    background-color: #FFD700; /* 金色/黄色 */
+    color: #333;
+}
+#btn-lunch {
+    background-color: #3CB371; /* 适中绿色 */
+    color: white;
+}
+#btn-dinner {
+    background-color: #DC143C; /* 深红色 */
+    color: white;
+}
+
+/* 手机端按钮调整 */
+@media (max-width: 768px) {
+    .directional-btns {
+        gap: 3vw;
+    }
+    .directional-btns .btn {
+        min-width: 40vw; /* 手机端占据宽度的一半 */
+        font-size: 2vh;
+        padding: 1.5vh 2vw;
+    }
+}
+
+/* --- 4. 音乐强制播放遮罩和弹窗样式 (保持不变) --- */
+#music-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    cursor: pointer;
+    transition: opacity 0.5s;
+}
+
+#overlay-message {
+    font-size: 5vh;
+    color: #ffd700;
+    padding: 3vh 6vw;
+    border: 3px solid #ffd700;
+    border-radius: 10px;
+    animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+#result-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+.modal-content {
+    background: linear-gradient(135deg, #fff8dc, #ffebcd);
+    color: #333;
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
+    transform: scale(0.7);
+    animation: popIn 0.4s forwards cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    max-width: 90%;
+    text-align: center;
+}
+.modal-content h2 {
+    color: #e73c7e;
+    font-size: 4vh;
+    border-bottom: 3px solid #e73c7e;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+.modal-content p {
+    font-size: 2.5vh;
+}

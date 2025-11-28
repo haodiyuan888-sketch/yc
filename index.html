@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>美食记</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<audio id="bgMusic" src="assets/bg_music/芒种.mp3" loop></audio>
+
+<div id="music-overlay">
+    <div id="overlay-message">点击屏幕任意位置开始！</div>
+</div>
+
+<div class="page-container" id="main-page">
+    <h1>💯转什么吃什么🥢</h1>
+    <p>
+        您想决定吃哪一餐呢！
+    </p>
+
+    <div class="directional-btns">
+        <button class="btn" id="btn-breakfast" onclick="startSpin('早饭 🍚')">
+            ☀️ 早饭
+        </button>
+        <button class="btn" id="btn-lunch" onclick="startSpin('午饭 🍜')">
+            🍽️ 午饭
+        </button>
+        <button class="btn" id="btn-dinner" onclick="startSpin('晚饭 🍲')">
+            🌙 晚饭
+        </button>
+    </div>
+
+    <div id="wheel-container">
+        <div id="wheel">
+            <div id="spin-placeholder"></div>
+        </div>
+        <div id="wheel-pointer"></div>
+    </div>
+
+    <button class="btn" id="reset-btn" onclick="resetWheel()">复位</button>
+
+</div>
+
+<div id="result-modal">
+    <div class="modal-content">
+        <h2 id="modal-title"></h2>
+        <p id="modal-message"></p>
+        <button class="btn" onclick="closeModalAndEnableButtons()">再来一次！</button>
+    </div>
+</div>
+
+<script>
+    const music = document.getElementById('bgMusic');
+    const overlay = document.getElementById('music-overlay');
+    const wheel = document.getElementById('wheel');
+    const modal = document.getElementById('result-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalMessage = document.getElementById('modal-message');
+    const directionalBtns = document.querySelectorAll('.directional-btns .btn');
+
+    // *** 音乐播放逻辑 (不变) ***
+    overlay.addEventListener('click', () => {
+        music.play().then(() => {
+            overlay.style.opacity = '0';
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 500);
+        }).catch(error => {
+            console.error("音乐播放失败:", error);
+            overlay.style.display = 'none';
+        });
+    }, { once: true });
+
+    /* 抽奖转盘逻辑：100个扇区，三大类，中国菜为主 */
+    // 奖品数据保持 100 个不变
+    const prizes = [
+        // --- 早餐 (B) 33 种选项 (粥/菜/点心为主) ---
+        { type: "早饭 🍚", name: "皮蛋瘦肉粥", message: "经典广式粥品，暖胃首选！" },
+        { type: "早饭 🍚", name: "小米南瓜粥", message: "养生又甜蜜，健康开始！" },
+        { type: "早饭 🍚", name: "虾饺/烧卖", message: "精致广式点心，美美哒！" },
+        { type: "早饭 🍚", name: "鸡蛋灌饼", message: "街边小吃王者，香脆可口！" },
+        { type: "早饭 🍚", name: "咸豆腐脑", message: "地道北方风味，加点辣椒！" },
+        { type: "早饭 🍚", name: "煎饼果子", message: "天津特色，卷一切！" },
+        { type: "早饭 🍚", name: "红枣银耳粥", message: "润燥养颜，开启元气！" },
+        { type: "早饭 🍚", name: "菜包/肉包", message: "热气腾腾的大包子！" },
+        { type: "早饭 🍚", name: "葱油拌面 (小份)", message: "简易小菜，葱香四溢！" },
+        { type: "早饭 🍚", name: "肠粉 (鲜虾/牛肉)", message: "丝滑细腻，广式早点！" },
+        { type: "早饭 🍚", name: "紫米粥", message: "健康粗粮，饱腹感强！" },
+        { type: "早饭 🍚", name: "白粥配榨菜/腐乳", message: "清淡养胃，极简主义！" },
+        { type: "早饭 🍚", name: "油条配豆浆", message: "永恒的经典搭配！" },
+        { type: "早饭 🍚", name: "锅贴 (生煎)", message: "外焦里嫩，小心烫嘴！" },
+        { type: "早饭 🍚", name: "酸辣土豆丝", message: "清爽小菜，开胃提神！" },
+        { type: "早饭 🍚", name: "肉松粥", message: "咸香软糯，儿童最爱！" },
+        { type: "早饭 🍚", name: "白灼时蔬", message: "清淡健康，膳食纤维！" },
+        { type: "早饭 🍚", name: "胡辣汤 (河南)", message: "中原特色，麻辣暖胃！" },
+        { type: "早饭 🍚", name: "茶叶蛋", message: "入味醇厚，便利之选！" },
+        { type: "早饭 🍚", name: "油茶 (西安)", message: "香浓坚果，地方小吃！" },
+        { type: "早饭 🍚", name: "小笼包", message: "汤汁鲜美，要慢点吃！" },
+        { type: "早饭 🍚", name: "窝窝头", message: "粗粮健康，怀旧美味！" },
+        { type: "早饭 🍚", name: "鸡蛋醪糟 (甜品)", message: "甜酒暖胃，甜蜜开始！" },
+        { type: "早饭 🍚", name: "菜肉馄饨 (小份)", message: "皮薄馅大，汤鲜味美！" },
+        { type: "早饭 🍚", name: "绿豆粥", message: "清凉解暑，夏季优选！" },
+        { type: "早饭 🍚", name: "水晶虾饺", message: "晶莹剔透，入口Q弹！" },
+        { type: "早饭 🍚", name: "蒸玉米/红薯", message: "天然甜味，健康朴素！" },
+        { type: "早饭 🍚", name: "咸鸭蛋", message: "下粥神器，油沙流心！" },
+        { type: "早饭 🍚", name: "鸡丝粥", message: "营养丰富，口感顺滑！" },
+        { type: "早饭 🍚", name: "麻团/煎堆", message: "外酥里糯，香甜可口！" },
+        { type: "早饭 🍚", name: "肉夹馍 (小份)", message: "馍香肉烂，西安特色！" },
+        { type: "早饭 🍚", name: "鱼片粥", message: "海鲜清淡，鲜味十足！" },
+        { type: "早饭 🍚", name: "葱油饼", message: "外酥里软，葱香扑鼻！" },
+
+        // --- 午餐 (L) 34 种选项 (米/面/粉为主) ---
+        { type: "午饭 🍜", name: "红烧牛肉面", message: "浓汤厚肉，大口满足！" },
+        { type: "午饭 🍜", name: "兰州拉面", message: "清汤萝卜，劲道面条！" },
+        { type: "午饭 🍜", name: "鱼香肉丝盖饭", message: "国民下饭菜，酸甜可口！" },
+        { type: "午饭 🍜", name: "酸菜鱼米饭", message: "麻辣鲜香，超级下饭！" },
+        { type: "午饭 🍜", name: "卤肉饭 (台式)", message: "香浓入味，一口回到童年！" },
+        { type: "午饭 🍜", name: "鸡公煲米饭", message: "麻辣干锅，越吃越香！" },
+        { type: "午饭 🍜", name: "重庆小面", message: "麻辣鲜香，舌尖上的刺激！" },
+        { type: "午饭 🍜", name: "担担面", message: "川味经典，香辣酱汁！" },
+        { type: "午饭 🍜", name: "过桥米线", message: "云南特色，大碗热汤！" },
+        { type: "午饭 🍜", name: "虾仁炒面", message: "锅气十足，面条Q弹！" },
+        { type: "午饭 🍜", name: "扬州炒饭", message: "粒粒分明，金玉满堂！" },
+        { type: "午饭 🍜", name: "炒米粉 (江西/广东)", message: "干香有嚼劲，地方美食！" },
+        { type: "午饭 🍜", name: "砂锅米线", message: "温暖滋补，料足味美！" },
+        { type: "午饭 🍜", name: "宫保鸡丁盖饭", message: "甜辣口味，永远的神！" },
+        { type: "午饭 🍜", name: "新疆大盘鸡拌面", message: "豪迈美味，分量十足！" },
+        { type: "午饭 🍜", name: "炸酱面 (老北京)", message: "浓郁酱料，面条劲道！" },
+        { type: "午饭 🍜", name: "酸辣粉 (红薯粉)", message: "酸辣刺激，劲道爽口！" },
+        { type: "午饭 🍜", name: "武汉热干面", message: "芝麻酱浓郁，湖北特色！" },
+        { type: "午饭 🍜", name: "炒河粉 (干炒牛河)", message: "粤式经典，镬气十足！" },
+        { type: "午饭 🍜", name: "排骨饭/蒸饭", message: "软糯排骨，米饭入味！" },
+        { type: "午饭 🍜", name: "馄饨面", message: "面条馄饨双重享受！" },
+        { type: "午饭 🍜", name: "海鲜炒饭", message: "海味十足，鲜香美味！" },
+        { type: "午饭 🍜", name: "刀削面 (山西)", message: "面身厚实，口感独特！" },
+        { type: "午饭 🍜", name: "麻辣拌面", message: "简单粗暴，麻辣开胃！" },
+        { type: "午饭 🍜", name: "咖喱鸡饭", message: "香浓咖喱，东南亚风味！" },
+        { type: "午饭 🍜", name: "云吞面", message: "广式清汤，鲜虾云吞！" },
+        { type: "午饭 🍜", name: "西红柿鸡蛋面", message: "家常温暖，清爽不腻！" },
+        { type: "午饭 🍜", name: "梅菜扣肉饭", message: "咸香软烂，肥而不腻！" },
+        { type: "午饭 🍜", name: "葱油拌面 (主食)", message: "大份面条，葱香浓郁！" },
+        { type: "午饭 🍜", name: "炒年糕", message: "软糯年糕，搭配肉丝青菜！" },
+        { type: "午饭 🍜", name: "藤椒鸡米饭", message: "藤椒麻香，清新不腻！" },
+        { type: "午饭 🍜", name: "酸辣米粉", message: "酸辣够味，嗦粉停不下来！" },
+        { type: "午饭 🍜", name: "烩面 (河南)", message: "羊肉汤鲜，面片劲道！" },
+        { type: "午饭 🍜", name: "麻辣香锅配米饭", message: "干香麻辣，自由组合！" },
+
+        // --- 晚餐 (D) 33 种选项 (粥/菜为主) ---
+        { type: "晚饭 🍲", name: "清炒时蔬 (三道)", message: "健康清淡，膳食均衡！" },
+        { type: "晚饭 🍲", name: "红烧肉", message: "肥而不腻，米饭杀手！" },
+        { type: "晚饭 🍲", name: "宫保鸡丁 (家常菜)", message: "酸甜适中，大厨水准！" },
+        { type: "晚饭 🍲", name: "蒜蓉开背虾", message: "鲜美海味，蒜香浓郁！" },
+        { type: "晚饭 🍲", name: "麻婆豆腐", message: "川味经典，麻辣鲜香！" },
+        { type: "晚饭 🍲", name: "鱼香肉丝 (家常菜)", message: "下饭菜中的常青树！" },
+        { type: "晚饭 🍲", name: "东北大乱炖", message: "豪迈东北菜，营养丰富！" },
+        { type: "晚饭 🍲", name: "地三鲜", message: "茄子土豆青椒，完美搭配！" },
+        { type: "晚饭 🍲", name: "清蒸鲈鱼", message: "鲜嫩原味，粤菜风情！" },
+        { type: "晚饭 🍲", name: "蔬菜粥 (晚餐)", message: "清淡粥品，睡前无负担！" },
+        { type: "晚饭 🍲", name: "醋溜白菜", message: "简单快手，酸脆可口！" },
+        { type: "晚饭 🍲", name: "番茄炒蛋", message: "最家常的温暖味道！" },
+        { type: "晚饭 🍲", name: "老鸭汤/排骨汤", message: "滋补炖汤，暖心暖胃！" },
+        { type: "晚饭 🍲", name: "爆炒腰花", message: "火爆爆炒，口感脆嫩！" },
+        { type: "晚饭 🍲", name: "家常豆腐", message: "外焦里嫩，酱香浓郁！" },
+        { type: "晚饭 🍲", name: "白灼虾", message: "原汁原味，海鲜最佳！" },
+        { type: "晚饭 🍲", name: "香菇鸡肉粥", message: "简单熬煮，滋味无穷！" },
+        { type: "晚饭 🍲", name: "水煮牛肉/鱼", message: "麻辣鲜香，重口味必选！" },
+        { type: "晚饭 🍲", name: "蒜蓉西兰花", message: "健康绿叶菜，清爽美味！" },
+        { type: "晚饭 🍲", name: "清蒸肉饼", message: "粤式家常菜，鲜嫩多汁！" },
+        { type: "晚饭 🍲", name: "小炒黄牛肉", message: "湖南特色，香辣下饭！" },
+        { type: "晚饭 🍲", name: "酸菜鱼片汤", message: "酸爽开胃，鱼肉鲜嫩！" },
+        { type: "晚饭 🍲", name: "清炖羊肉", message: "冬季滋补，汤浓肉烂！" },
+        { type: "晚饭 🍲", name: "酱爆猪肝", message: "口感细腻，酱香浓郁！" },
+        { type: "晚饭 🍲", name: "冬瓜排骨汤", message: "清淡解腻，润肺降燥！" },
+        { type: "晚饭 🍲", name: "夫妻肺片 (凉菜)", message: "川味凉菜，麻辣香浓！" },
+        { type: "晚饭 🍲", name: "红烧茄子", message: "软糯入味，米饭搭档！" },
+        { type: "晚饭 🍲", name: "扬州狮子头", message: "淮扬名菜，清淡软糯！" },
+        { type: "晚饭 🍲", name: "椒盐排条", message: "外酥里嫩，咸香适口！" },
+        { type: "晚饭 🍲", name: "上汤娃娃菜", message: "清淡营养，汤汁鲜美！" },
+        { type: "晚饭 🍲", name: "海参小米粥", message: "滋补养颜，高端粥品！" },
+        { type: "晚饭 🍲", name: "干锅花菜", message: "干香麻辣，锅气十足！" },
+        { type: "晚饭 🍲", name: "葱烧海参", message: "鲁菜经典，口感软糯！" },
+    ];
+
+    // 验证总数是否为 100
+    console.assert(prizes.length === 100, `奖品数量应为 100，实际为 ${prizes.length}`);
+
+    let isSpinning = false;
+    const totalSegments = prizes.length; // 100
+    const anglePerSegment = 360 / totalSegments; // 3.6度
+    const halfSegmentAngle = anglePerSegment / 2; // 1.8度
+    let currentRotation = 0;
+
+    // 恢复转盘到初始状态
+    function resetWheel() {
+        if (isSpinning) return;
+        wheel.style.transition = 'transform 0.5s ease-out';
+        wheel.style.transform = `rotate(0deg)`;
+        currentRotation = 0;
+        enableButtons();
+    }
+
+    // 启用所有按钮
+    function enableButtons() {
+        directionalBtns.forEach(btn => btn.disabled = false);
+    }
+
+    // 禁用所有按钮
+    function disableButtons() {
+        directionalBtns.forEach(btn => btn.disabled = true);
+    }
+
+    // 关闭弹窗并启用按钮
+    function closeModalAndEnableButtons() {
+        modal.style.display = 'none';
+        enableButtons();
+    }
+
+    // 动态生成100个扇区文本 (在 CSS 中已隐藏)
+    function createWheelSegments() {
+        prizes.forEach((prize, index) => {
+            const segment = document.createElement('div');
+            segment.classList.add('wheel-segment');
+            segment.textContent = `${prize.type}: ${prize.name}`;
+
+            const rotationAngle = (index * anglePerSegment + halfSegmentAngle) + 90;
+            segment.style.transform = `rotate(${rotationAngle}deg)`;
+            wheel.appendChild(segment);
+        });
+    }
+    createWheelSegments();
+
+    /**
+     * 开始抽奖，根据 mealType 进行定向抽取
+     * @param {string} mealType - 抽奖类型 ('早饭 🍚', '午饭 🍜', '晚饭 🍲')
+     */
+    function startSpin(mealType) {
+        if (isSpinning) return;
+        isSpinning = true;
+        disableButtons();
+
+        // 1. 过滤出目标类别的奖品，并记录它们在整个 prizes 数组中的原始索引
+        const filteredPrizes = prizes.map((p, index) => ({
+            ...p,
+            originalIndex: index
+        })).filter(p => p.type === mealType);
+
+        if (filteredPrizes.length === 0) {
+            console.error("未找到匹配的奖品类别。");
+            isSpinning = false;
+            enableButtons();
+            return;
+        }
+
+        // 2. 在过滤后的数组中随机选择一个结果
+        const selectedFilteredIndex = Math.floor(Math.random() * filteredPrizes.length);
+        const selectedPrize = filteredPrizes[selectedFilteredIndex];
+
+        // 3. 获取该结果在原始 100 个奖品数组中的索引
+        const actualIndex = selectedPrize.originalIndex;
+
+        // 4. 计算旋转角度 (逻辑与之前相同，但基于 100 扇区)
+        const randomRevolutions = Math.floor(Math.random() * 5) + 5;
+        const angleToAlign = 360 - (actualIndex * anglePerSegment + halfSegmentAngle);
+        const targetAngle = currentRotation + (360 * randomRevolutions) + angleToAlign;
+
+        // 5. 执行旋转动画
+        wheel.style.transition = 'transform 5s cubic-bezier(0.25, 0.1, 0.25, 1)';
+        wheel.style.transform = `rotate(${targetAngle}deg)`;
+
+        // 6. 旋转结束后弹出结果
+        setTimeout(() => {
+            isSpinning = false;
+
+            modalTitle.textContent = `🎯  ${selectedPrize.type}：${selectedPrize.name}`;
+            modalMessage.textContent = `美食建议：${selectedPrize.message}`;
+            modal.style.display = 'flex';
+
+            // 更新记录的角度
+            currentRotation = targetAngle % 360;
+            wheel.style.transition = 'none';
+            wheel.style.transform = `rotate(${currentRotation}deg)`;
+
+        }, 5500); // 旋转时间 5 秒 + 500 毫秒缓冲
+    }
+</script>
+</body>
+</html>
